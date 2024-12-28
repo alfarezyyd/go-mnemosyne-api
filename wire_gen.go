@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
 	"go-mnemosyne-api/user"
@@ -15,9 +16,9 @@ import (
 
 // Injectors from injector.go:
 
-func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate) user.Controller {
+func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator) user.Controller {
 	repositoryImpl := user.NewRepository()
-	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance)
+	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator)
 	handler := user.NewHandler(serviceImpl, validatorInstance)
 	return handler
 }

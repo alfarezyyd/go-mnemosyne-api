@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
+	"go-mnemosyne-api/exception"
+	"go-mnemosyne-api/routes"
 )
 
 //TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
@@ -26,11 +28,20 @@ func main() {
 	}
 
 	databaseInstance := config.NewDatabaseConnection(databaseCredentials)
-	databaseInstance.GetDatabaseConnection()
+	databaseConnection := databaseInstance.GetDatabaseConnection()
+
+	// Validator
+	validatorInstance, engTranslator := config.InitializeValidator()
 
 	// Gin Initialization
 	ginEngine := gin.Default()
 	ginEngine.Use(gin.Recovery())
+	ginEngine.Use(exception.Interceptor())
+
+	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator)
+	publicRouterGroup := ginEngine.Group("/public")
+	routes.PublicRoute(publicRouterGroup, userController)
+	// Route
 	ginError := ginEngine.Run()
 	if ginError != nil {
 		panic(ginError)
