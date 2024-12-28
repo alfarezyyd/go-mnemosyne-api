@@ -7,15 +7,18 @@
 package main
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
 	"go-mnemosyne-api/user"
+	"gorm.io/gorm"
 )
 
 // Injectors from injector.go:
 
-func InitializeUserController() user.Controller {
-	serviceImpl := user.NewService()
-	handler := user.NewHandler(serviceImpl)
+func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate) user.Controller {
+	repositoryImpl := user.NewRepository()
+	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance)
+	handler := user.NewHandler(serviceImpl, validatorInstance)
 	return handler
 }
 

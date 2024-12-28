@@ -4,8 +4,10 @@
 package main
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
 	"go-mnemosyne-api/user"
+	"gorm.io/gorm"
 )
 
 var userFeatureSet = wire.NewSet(
@@ -17,7 +19,7 @@ var userFeatureSet = wire.NewSet(
 	wire.Bind(new(user.Repository), new(*user.RepositoryImpl)),
 )
 
-func InitializeUserController() user.Controller {
+func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate) user.Controller {
 	wire.Build(userFeatureSet)
 	return nil
 }
