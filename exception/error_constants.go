@@ -10,4 +10,5 @@ const (
 	ErrRequestTimeout      = "Request Timeout"
 	ErrTooManyRequests     = "Too Many Requests"
 	ErrInternalServerError = "Internal Server Error"
+	ErrBadRequest          = "Bad Request"
 )
