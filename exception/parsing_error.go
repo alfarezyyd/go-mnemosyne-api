@@ -2,6 +2,8 @@ package exception
 
 import (
 	"errors"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -43,4 +45,13 @@ func ParseGormError(err error) *ClientError {
 			StatusCode: http.StatusInternalServerError,
 		}
 	}
+}
+
+func ParseValidationError(validationError error, engTranslator ut.Translator) map[string]interface{} {
+	parsedMap := make(map[string]interface{})
+	for _, fieldError := range validationError.(validator.ValidationErrors) {
+		// can translate each error one at a time.
+		parsedMap[fieldError.Field()] = fieldError.Translate(engTranslator)
+	}
+	panic(NewClientError(http.StatusBadRequest, ErrBadRequest, parsedMap))
 }
