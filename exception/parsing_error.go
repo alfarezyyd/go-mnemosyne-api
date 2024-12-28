@@ -47,11 +47,13 @@ func ParseGormError(err error) *ClientError {
 	}
 }
 
-func ParseValidationError(validationError error, engTranslator ut.Translator) map[string]interface{} {
-	parsedMap := make(map[string]interface{})
-	for _, fieldError := range validationError.(validator.ValidationErrors) {
-		// can translate each error one at a time.
-		parsedMap[fieldError.Field()] = fieldError.Translate(engTranslator)
+func ParseValidationError(validationError error, engTranslator ut.Translator) {
+	if validationError != nil {
+		parsedMap := make(map[string]interface{})
+		for _, fieldError := range validationError.(validator.ValidationErrors) {
+			// can translate each error one at a time.
+			parsedMap[fieldError.Field()] = fieldError.Translate(engTranslator)
+		}
+		panic(NewClientError(http.StatusBadRequest, ErrBadRequest, parsedMap))
 	}
-	panic(NewClientError(http.StatusBadRequest, ErrBadRequest, parsedMap))
 }
