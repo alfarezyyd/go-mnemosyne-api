@@ -1,15 +1,30 @@
 package user
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"go-mnemosyne-api/exception"
+	"go-mnemosyne-api/helper"
+	"go-mnemosyne-api/user/dto"
+	"net/http"
+)
 
 type Handler struct {
-	userService Service
+	userService       Service
+	validatorInstance *validator.Validate
 }
 
-func NewHandler(userService Service) *Handler {
+func NewHandler(userService Service, validatorInstance *validator.Validate) *Handler {
 	return &Handler{
-		userService: userService,
+		userService:       userService,
+		validatorInstance: validatorInstance,
 	}
 }
 
-func (handler *Handler) Register(ginContext *gin.Context) {}
+func (userHandler *Handler) Register(ginContext *gin.Context) {
+	var createUserDto dto.CreateUserDto
+	err := ginContext.ShouldBindBodyWithJSON(&createUserDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	userHandler.userService.HandleRegister(ginContext, &createUserDto)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("User created successfully", nil))
+}
