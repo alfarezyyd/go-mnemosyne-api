@@ -27,7 +27,9 @@ func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validato
 }
 
 func InitializeCategoryController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator) category.Controller {
-	handler := category.NewHandler()
+	repositoryImpl := category.NewRepository()
+	serviceImpl := category.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator)
+	handler := category.NewHandler(serviceImpl)
 	return handler
 }
 
