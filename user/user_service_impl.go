@@ -3,9 +3,11 @@ package user
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/exception"
 	"go-mnemosyne-api/helper"
@@ -27,6 +29,7 @@ type ServiceImpl struct {
 	engTranslator     ut.Translator
 	mailerService     *config.MailerService
 	identityProvider  *config.IdentityProvider
+	viperConfig       *viper.Viper
 }
 
 func NewService(
@@ -35,7 +38,8 @@ func NewService(
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
 	mailerService *config.MailerService,
-	identityProvider *config.IdentityProvider) *ServiceImpl {
+	identityProvider *config.IdentityProvider,
+	viperConfig *viper.Viper) *ServiceImpl {
 	return &ServiceImpl{
 		userRepository:    userRepository,
 		dbConnection:      dbConnection,
@@ -43,6 +47,7 @@ func NewService(
 		engTranslator:     engTranslator,
 		mailerService:     mailerService,
 		identityProvider:  identityProvider,
+		viperConfig:       viperConfig,
 	}
 }
 
@@ -144,4 +149,26 @@ func (serviceImpl *ServiceImpl) HandleGoogleCallback(ginContext *gin.Context) {
 		ginContext.JSON(http.StatusBadRequest, exception.ErrBadRequest)
 	}
 	ginContext.JSON(http.StatusOK, string(userData))
+}
+
+func (serviceImpl *ServiceImpl) HandleLogin(ginContext *gin.Context, loginUserDto *dto.LoginUserDto) string {
+	err := serviceImpl.validatorInstance.Struct(loginUserDto)
+	exception.ParseValidationError(err, serviceImpl.engTranslator)
+	var tokenString string
+	err = serviceImpl.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		var userModel model.User
+		err = gormTransaction.Where("email = ?", loginUserDto.UserIdentifier).Or("phone_number = ?", loginUserDto.UserIdentifier).First(&userModel).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		err = bcrypt.CompareHashAndPassword([]byte(userModel.Password), []byte(loginUserDto.Password))
+		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, "User credentials invalid"))
+		tokenInstance := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"email":        userModel.Email,
+			"phone_number": userModel.PhoneNumber,
+			"exp":          time.Now().Add(time.Hour * 72).Unix(),
+		})
+		tokenString, err = tokenInstance.SignedString([]byte(serviceImpl.viperConfig.GetString("JWT_SECRET")))
+		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusInternalServerError, exception.ErrInternalServerError))
+		return nil
+	})
+	return tokenString
 }

@@ -42,7 +42,7 @@ func main() {
 	identityProvider := config.NewIdentityProvider(viperConfig)
 	identityProvider.InitializeGoogleProviderConfig()
 
-	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider)
+	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 

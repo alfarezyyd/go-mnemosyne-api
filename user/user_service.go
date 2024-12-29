@@ -11,4 +11,5 @@ type Service interface {
 	HandleVerifyOneTimePassword(ginContext *gin.Context, verifyOtpDto *dto.VerifyOtpDto)
 	HandleGoogleAuthentication(ginContext *gin.Context)
 	HandleGoogleCallback(ginContext *gin.Context)
+	HandleLogin(ginContext *gin.Context, loginUserDto *dto.LoginUserDto) string
 }

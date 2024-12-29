@@ -45,6 +45,16 @@ func (userHandler *Handler) VerifyOneTimePassword(ginContext *gin.Context) {
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("OTP verified successfully", nil))
 }
 
+func (userHandler *Handler) Login(ginContext *gin.Context) {
+	var loginUserDto dto.LoginUserDto
+	err := ginContext.ShouldBindBodyWithJSON(&loginUserDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	generatedToken := userHandler.userService.HandleLogin(ginContext, &loginUserDto)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("User logged successfully", gin.H{
+		"token": generatedToken,
+	}))
+}
+
 func (userHandler *Handler) LoginWithGoogle(ginContext *gin.Context) {
 	userHandler.userService.HandleGoogleAuthentication(ginContext)
 }
