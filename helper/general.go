@@ -5,7 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go-mnemosyne-api/exception"
 	"gorm.io/gorm"
+	"math/rand"
 	"net/http"
+	"strconv"
 )
 
 func CheckErrorOperation(indicatedError error, clientError *exception.ClientError) bool {
@@ -26,4 +28,9 @@ func TransactionOperation(runningTransaction *gorm.DB, ginContext *gin.Context) 
 	} else {
 		runningTransaction.Commit()
 	}
+}
+
+func GenerateOneTimePasswordToken() string {
+	num := rand.Intn(9000) + 1000
+	return strconv.Itoa(num)
 }

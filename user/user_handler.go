@@ -28,3 +28,11 @@ func (userHandler *Handler) Register(ginContext *gin.Context) {
 	userHandler.userService.HandleRegister(ginContext, &createUserDto)
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("User created successfully", nil))
 }
+
+func (userHandler *Handler) GenerateOneTimePassword(ginContext *gin.Context) {
+	var generateOneTimePassDto dto.GenerateOtpDto
+	err := ginContext.ShouldBindBodyWithJSON(&generateOneTimePassDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	userHandler.userService.HandleGenerateOneTimePassword(ginContext, &generateOneTimePassDto)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("OTP generated successfully", nil))
+}

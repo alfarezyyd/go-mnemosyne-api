@@ -4,4 +4,5 @@ import "github.com/gin-gonic/gin"
 
 type Controller interface {
 	Register(ginContext *gin.Context)
+	GenerateOneTimePassword(ginContext *gin.Context)
 }

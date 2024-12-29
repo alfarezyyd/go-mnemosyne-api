@@ -7,4 +7,5 @@ import (
 
 type Service interface {
 	HandleRegister(ginContext *gin.Context, createUserDto *dto.CreateUserDto)
+	HandleGenerateOneTimePassword(ginContext *gin.Context, generateOtpDto *dto.GenerateOtpDto)
 }
