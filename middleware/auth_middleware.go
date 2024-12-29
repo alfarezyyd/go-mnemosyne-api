@@ -8,14 +8,15 @@ import (
 	"go-mnemosyne-api/helper"
 	"go-mnemosyne-api/mapper"
 	"net/http"
+	"strings"
 )
 
-func authMiddleware(viperConfig *viper.Viper) gin.HandlerFunc {
+func AuthMiddleware(viperConfig *viper.Viper) gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		tokenString := ginContext.GetHeader("Authorization")
-
+		trimmedTokenString := strings.Replace(tokenString, "Bearer ", "", 1)
 		// Parse the token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(trimmedTokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, http.ErrAbortHandler
 			}
