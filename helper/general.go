@@ -1,12 +1,9 @@
 package helper
 
 import (
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"go-mnemosyne-api/exception"
-	"gorm.io/gorm"
 	"math/rand"
-	"net/http"
+	"reflect"
 	"strconv"
 )
 
@@ -18,16 +15,29 @@ func CheckErrorOperation(indicatedError error, clientError *exception.ClientErro
 	return false
 }
 
-func TransactionOperation(runningTransaction *gorm.DB, ginContext *gin.Context) {
-	occurredError := recover()
-	fmt.Println(occurredError)
-	if occurredError != nil {
-		fmt.Println(occurredError)
-		runningTransaction.Rollback()
-		ginContext.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": runningTransaction.Error.Error()})
-	} else {
-		runningTransaction.Commit()
+func ParseNullableValue(value interface{}) interface{} {
+	v := reflect.ValueOf(value)
+
+	// Handle pointer types
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
+
+	// Check for sql.Null* types
+	if v.Kind() == reflect.Struct {
+		validField := v.FieldByName("Valid")
+		valueField := v.FieldByName("String") // Default to String; change for other nullable types
+
+		if validField.IsValid() && validField.Kind() == reflect.Bool {
+			if validField.Bool() {
+				return valueField.Interface()
+			}
+			return nil
+		}
+	}
+
+	// If not a nullable type, return the value as is
+	return value
 }
 
 func GenerateOneTimePasswordToken() string {
