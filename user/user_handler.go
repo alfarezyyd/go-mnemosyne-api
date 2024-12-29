@@ -44,3 +44,11 @@ func (userHandler *Handler) VerifyOneTimePassword(ginContext *gin.Context) {
 	userHandler.userService.HandleVerifyOneTimePassword(ginContext, &VerifyOneTimePassDto)
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("OTP verified successfully", nil))
 }
+
+func (userHandler *Handler) LoginWithGoogle(ginContext *gin.Context) {
+	userHandler.userService.HandleGoogleAuthentication(ginContext)
+}
+
+func (userHandler *Handler) GoogleProviderCallback(ginContext *gin.Context) {
+	userHandler.userService.HandleGoogleCallback(ginContext)
+}

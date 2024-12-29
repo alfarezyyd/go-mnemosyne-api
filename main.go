@@ -39,11 +39,16 @@ func main() {
 	ginEngine.Use(gin.Recovery())
 	ginEngine.Use(exception.Interceptor())
 
-	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService)
+	identityProvider := config.NewIdentityProvider(viperConfig)
+	identityProvider.InitializeGoogleProviderConfig()
+
+	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider)
+	authRouterGroup := ginEngine.Group("/authentication")
+	routes.AuthenticationRoute(authRouterGroup, userController)
+
 	apiRouterGroup := ginEngine.Group("/api")
 	publicRouterGroup := apiRouterGroup.Group("/public")
 	routes.PublicRoute(publicRouterGroup, userController)
-
 	routes.UserRoute(apiRouterGroup, userController)
 	// Route
 	ginError := ginEngine.Run()

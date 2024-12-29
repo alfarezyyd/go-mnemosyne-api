@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
@@ -13,6 +14,7 @@ import (
 	"go-mnemosyne-api/user/dto"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -24,15 +26,23 @@ type ServiceImpl struct {
 	validatorInstance *validator.Validate
 	engTranslator     ut.Translator
 	mailerService     *config.MailerService
+	identityProvider  *config.IdentityProvider
 }
 
-func NewService(userRepository Repository, dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, mailerService *config.MailerService) *ServiceImpl {
+func NewService(
+	userRepository Repository,
+	dbConnection *gorm.DB,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator,
+	mailerService *config.MailerService,
+	identityProvider *config.IdentityProvider) *ServiceImpl {
 	return &ServiceImpl{
 		userRepository:    userRepository,
 		dbConnection:      dbConnection,
 		validatorInstance: validatorInstance,
 		engTranslator:     engTranslator,
 		mailerService:     mailerService,
+		identityProvider:  identityProvider,
 	}
 }
 
@@ -99,4 +109,39 @@ func (serviceImpl *ServiceImpl) HandleVerifyOneTimePassword(ginContext *gin.Cont
 		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 		return nil
 	})
+}
+
+func (serviceImpl *ServiceImpl) HandleGoogleAuthentication(ginContext *gin.Context) {
+	authEndpoint := serviceImpl.identityProvider.GoogleProviderConfig.AuthCodeURL("randomstate")
+	ginContext.Redirect(http.StatusSeeOther, authEndpoint)
+	ginContext.JSON(http.StatusOK, authEndpoint)
+}
+
+func (serviceImpl *ServiceImpl) HandleGoogleCallback(ginContext *gin.Context) {
+	state := ginContext.Query("state")
+	if state != "randomstate" {
+		ginContext.JSON(http.StatusBadRequest, exception.ErrBadRequest)
+		return
+	}
+
+	queryCode := ginContext.Query("code")
+
+	googleProviderConfig := serviceImpl.identityProvider.GoogleProviderConfig
+
+	token, err := googleProviderConfig.Exchange(context.Background(), queryCode)
+	if err != nil {
+		ginContext.JSON(http.StatusBadRequest, exception.ErrBadRequest)
+		return
+	}
+
+	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	if err != nil {
+		ginContext.JSON(http.StatusBadRequest, exception.ErrBadRequest)
+	}
+
+	userData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		ginContext.JSON(http.StatusBadRequest, exception.ErrBadRequest)
+	}
+	ginContext.JSON(http.StatusOK, string(userData))
 }
