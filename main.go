@@ -33,14 +33,18 @@ func main() {
 	// Validator
 	validatorInstance, engTranslator := config.InitializeValidator()
 
+	mailerService := config.NewMailerService(viperConfig)
 	// Gin Initialization
 	ginEngine := gin.Default()
 	ginEngine.Use(gin.Recovery())
 	ginEngine.Use(exception.Interceptor())
 
-	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator)
-	publicRouterGroup := ginEngine.Group("/public")
+	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService)
+	apiRouterGroup := ginEngine.Group("/api")
+	publicRouterGroup := apiRouterGroup.Group("/public")
 	routes.PublicRoute(publicRouterGroup, userController)
+
+	routes.UserRoute(apiRouterGroup, userController)
 	// Route
 	ginError := ginEngine.Run()
 	if ginError != nil {
