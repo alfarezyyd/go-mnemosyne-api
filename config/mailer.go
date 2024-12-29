@@ -10,10 +10,11 @@ import (
 
 type MailerService struct {
 	ViperConfig *viper.Viper
+	Sender      string
 }
 
 func NewMailerService(viperConfig *viper.Viper) *MailerService {
-	return &MailerService{ViperConfig: viperConfig}
+	return &MailerService{ViperConfig: viperConfig, Sender: viperConfig.GetString("EMAIL_USERNAME")}
 }
 
 type EmailPayload struct {

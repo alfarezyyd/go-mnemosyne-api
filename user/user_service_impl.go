@@ -11,9 +11,11 @@ import (
 	"go-mnemosyne-api/mapper"
 	"go-mnemosyne-api/model"
 	"go-mnemosyne-api/user/dto"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"net/http"
 	"os"
+	"time"
 )
 
 type ServiceImpl struct {
@@ -52,14 +54,21 @@ func (serviceImpl *ServiceImpl) HandleGenerateOneTimePassword(ginContext *gin.Co
 	exception.ParseValidationError(err, serviceImpl.engTranslator)
 	err = serviceImpl.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
 		var userModel model.User
+		var oneTimePasswordToken model.OneTimePasswordToken
 		err = gormTransaction.Where("email = ?", generateOneTimePassDto.Email).First(&userModel).Error
+		generatedOneTimePasswordToken := helper.GenerateOneTimePasswordToken()
+		hashedGeneratedOneTimePasswordToken, err := bcrypt.GenerateFromPassword([]byte(generatedOneTimePasswordToken), 10)
 		helper.CheckErrorOperation(err, exception.ParseGormError(err))
-		oneTimePasswordToken := helper.GenerateOneTimePasswordToken()
+		oneTimePasswordToken.UserId = userModel.ID
+		oneTimePasswordToken.HashedToken = string(hashedGeneratedOneTimePasswordToken)
+		oneTimePasswordToken.ExpiresAt = time.Now().Add(15 * time.Minute)
+		err = gormTransaction.Create(&oneTimePasswordToken).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
 		emailPayload := config.EmailPayload{
 			Title:     "OTP Sent",
 			Recipient: generateOneTimePassDto.Email,
-			Body:      fmt.Sprintf("One Time Password %s", oneTimePasswordToken),
-			Sender:    "adityaalfarezyd@gmail.com",
+			Body:      fmt.Sprintf("One Time Password %s", generatedOneTimePasswordToken),
+			Sender:    serviceImpl.mailerService.ViperConfig.GetString(""),
 		}
 
 		projectRoot, _ := os.Getwd() // Mendapatkan root path proyek
