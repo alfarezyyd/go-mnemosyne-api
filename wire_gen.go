@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
+	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
@@ -25,6 +26,13 @@ func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validato
 	return handler
 }
 
+func InitializeCategoryController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator) category.Controller {
+	handler := category.NewHandler()
+	return handler
+}
+
 // injector.go:
 
 var userFeatureSet = wire.NewSet(user.NewHandler, wire.Bind(new(user.Controller), new(*user.Handler)), user.NewService, wire.Bind(new(user.Service), new(*user.ServiceImpl)), user.NewRepository, wire.Bind(new(user.Repository), new(*user.RepositoryImpl)))
+
+var categoryFeatureSet = wire.NewSet(category.NewHandler, wire.Bind(new(category.Controller), new(*category.Handler)), category.NewService, wire.Bind(new(category.Service), new(*category.ServiceImpl)), category.NewRepository, wire.Bind(new(category.Repository), new(*category.RepositoryImpl)))
