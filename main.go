@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/exception"
+	"go-mnemosyne-api/middleware"
 	"go-mnemosyne-api/routes"
 )
 
@@ -43,13 +44,15 @@ func main() {
 	identityProvider.InitializeGoogleProviderConfig()
 
 	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
+	categoryController := InitializeCategoryController(databaseConnection, validatorInstance, engTranslator)
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 
 	apiRouterGroup := ginEngine.Group("/api")
 	publicRouterGroup := apiRouterGroup.Group("/public")
 	routes.PublicRoute(publicRouterGroup, userController)
-	routes.UserRoute(apiRouterGroup, userController)
+	apiRouterGroup.Use(middleware.AuthMiddleware(viperConfig))
+	routes.UserRoute(apiRouterGroup, userController, categoryController)
 	// Route
 	ginError := ginEngine.Run()
 	if ginError != nil {
