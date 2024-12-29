@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-viper/mapstructure/v2"
 	"go-mnemosyne-api/exception"
 	"go-mnemosyne-api/helper"
@@ -18,4 +19,13 @@ func MapUserDtoIntoUserModel[T *dto.CreateUserDto](userTransferObject T) *model.
 	userModel.Password = string(hashedPassword)
 	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 	return &userModel
+}
+
+func MapJwtClaimIntoUserClaim(jwtClaim jwt.MapClaims) (*dto.JwtClaimDto, error) {
+	var userClaim dto.JwtClaimDto
+	err := mapstructure.Decode(jwtClaim, &userClaim)
+	if err != nil {
+		return nil, err
+	}
+	return &userClaim, nil
 }
