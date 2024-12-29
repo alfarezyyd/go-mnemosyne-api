@@ -82,3 +82,21 @@ func (serviceImpl *ServiceImpl) HandleGenerateOneTimePassword(ginContext *gin.Co
 		return nil
 	})
 }
+
+func (serviceImpl *ServiceImpl) HandleVerifyOneTimePassword(ginContext *gin.Context, verifyOtpDto *dto.VerifyOtpDto) {
+	err := serviceImpl.validatorInstance.Struct(verifyOtpDto)
+	exception.ParseValidationError(err, serviceImpl.engTranslator)
+	err = serviceImpl.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		var userModel model.User
+		var oneTimePasswordToken model.OneTimePasswordToken
+		err = gormTransaction.Where("email = ?", verifyOtpDto.Email).First(&userModel).Error
+		gormTransaction.Where("user_id = ?", userModel.ID).Order("expires_at desc").First(&oneTimePasswordToken)
+		if !(time.Now().Before(oneTimePasswordToken.ExpiresAt)) {
+			exception.ThrowClientError(exception.NewClientError(http.StatusBadRequest, "OTP has expired"))
+		}
+		fmt.Println(oneTimePasswordToken.HashedToken, verifyOtpDto.OneTimePasswordToken)
+		err := bcrypt.CompareHashAndPassword([]byte(oneTimePasswordToken.HashedToken), []byte(verifyOtpDto.OneTimePasswordToken))
+		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+		return nil
+	})
+}
