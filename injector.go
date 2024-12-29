@@ -7,6 +7,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
+	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
@@ -25,7 +26,8 @@ func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
 	mailerService *config.MailerService,
-	identityProvider *config.IdentityProvider) user.Controller {
+	identityProvider *config.IdentityProvider,
+	viperConfig *viper.Viper) user.Controller {
 	wire.Build(userFeatureSet)
 	return nil
 }

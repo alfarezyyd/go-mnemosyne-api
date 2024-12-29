@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
+	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
@@ -17,9 +18,9 @@ import (
 
 // Injectors from injector.go:
 
-func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, mailerService *config.MailerService, identityProvider *config.IdentityProvider) user.Controller {
+func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, mailerService *config.MailerService, identityProvider *config.IdentityProvider, viperConfig *viper.Viper) user.Controller {
 	repositoryImpl := user.NewRepository()
-	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator, mailerService, identityProvider)
+	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
 	handler := user.NewHandler(serviceImpl, validatorInstance)
 	return handler
 }
