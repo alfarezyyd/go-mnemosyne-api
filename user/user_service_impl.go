@@ -163,7 +163,7 @@ func (serviceImpl *ServiceImpl) HandleLogin(ginContext *gin.Context, loginUserDt
 		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, "User credentials invalid"))
 		tokenInstance := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"email":        userModel.Email,
-			"phone_number": userModel.PhoneNumber,
+			"phone_number": helper.ParseNullableValue(userModel.PhoneNumber),
 			"exp":          time.Now().Add(time.Hour * 72).Unix(),
 		})
 		tokenString, err = tokenInstance.SignedString([]byte(serviceImpl.viperConfig.GetString("JWT_SECRET")))
