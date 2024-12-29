@@ -7,6 +7,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/wire"
+	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
 )
@@ -20,7 +21,10 @@ var userFeatureSet = wire.NewSet(
 	wire.Bind(new(user.Repository), new(*user.RepositoryImpl)),
 )
 
-func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator) user.Controller {
+func InitializeUserController(dbConnection *gorm.DB,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator,
+	mailerService *config.MailerService) user.Controller {
 	wire.Build(userFeatureSet)
 	return nil
 }
