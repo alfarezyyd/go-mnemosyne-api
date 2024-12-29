@@ -3,6 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/migrations/20241228081028_create_table_users.up.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/migrations/20241229080232_create_table_one_time_password_tokens.up.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/migrations/20241229194225_create_table_categories.down.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/migrations/20241229194225_create_table_categories.up.sql" dialect="MySQL" />
     <file url="PROJECT" dialect="MySQL" />
   </component>
