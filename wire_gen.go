@@ -17,9 +17,9 @@ import (
 
 // Injectors from injector.go:
 
-func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, mailerService *config.MailerService) user.Controller {
+func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, mailerService *config.MailerService, identityProvider *config.IdentityProvider) user.Controller {
 	repositoryImpl := user.NewRepository()
-	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator, mailerService)
+	serviceImpl := user.NewService(repositoryImpl, dbConnection, validatorInstance, engTranslator, mailerService, identityProvider)
 	handler := user.NewHandler(serviceImpl, validatorInstance)
 	return handler
 }

@@ -24,7 +24,8 @@ var userFeatureSet = wire.NewSet(
 func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
-	mailerService *config.MailerService) user.Controller {
+	mailerService *config.MailerService,
+	identityProvider *config.IdentityProvider) user.Controller {
 	wire.Build(userFeatureSet)
 	return nil
 }
