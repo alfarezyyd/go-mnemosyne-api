@@ -10,4 +10,5 @@ type Category struct {
 	Description string    `gorm:"column:description" mapstructure:"description"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`
+	Note        []Note    `gorm:"foreignKey:category_id;references:id"`
 }
