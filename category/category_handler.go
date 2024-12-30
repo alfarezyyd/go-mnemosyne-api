@@ -27,8 +27,19 @@ func (categoryHandler *Handler) Create(ginContext *gin.Context) {
 	err := ginContext.ShouldBindBodyWithJSON(&categoryCreateDto)
 	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 	categoryHandler.categoryService.HandleCreate(ginContext, &categoryCreateDto)
+	ginContext.JSON(http.StatusCreated, helper.WriteSuccess("Category has been created", nil))
 }
 
-func (categoryHandler *Handler) Update(ginContext *gin.Context) {}
+func (categoryHandler *Handler) Update(ginContext *gin.Context) {
+	var updateCategoryDto dto.UpdateCategoryDto
+	err := ginContext.ShouldBindBodyWithJSON(&updateCategoryDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	categoryHandler.categoryService.HandleUpdate(ginContext, &updateCategoryDto)
+	ginContext.JSON(http.StatusCreated, helper.WriteSuccess("Category has been updated", nil))
+}
 
-func (categoryHandler *Handler) Delete(ginContext *gin.Context) {}
+func (categoryHandler *Handler) Delete(ginContext *gin.Context) {
+	categoryId := ginContext.Param("id")
+	categoryHandler.categoryService.HandleDelete(ginContext, categoryId)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Category has been deleted", nil))
+}
