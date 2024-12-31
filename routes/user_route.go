@@ -4,11 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/note"
-	"go-mnemosyne-api/user"
 )
 
 func UserRoute(routerGroup *gin.RouterGroup,
-	userController user.Controller,
 	categoryController category.Controller,
 	noteController note.Controller) {
 	categoryGroup := routerGroup.Group("/categories")
