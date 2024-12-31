@@ -1,6 +1,7 @@
 package note
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -20,7 +21,7 @@ type ServiceImpl struct {
 	engTranslator     ut.Translator
 }
 
-func NewServiceImpl(noteRepository Repository, dbConnection *gorm.DB, validationService *validator.Validate, engTranslator ut.Translator) *ServiceImpl {
+func NewService(noteRepository Repository, dbConnection *gorm.DB, validationService *validator.Validate, engTranslator ut.Translator) *ServiceImpl {
 	return &ServiceImpl{
 		noteRepository:    noteRepository,
 		dbConnection:      dbConnection,
@@ -33,15 +34,17 @@ func (noteService *ServiceImpl) HandleCreate(ginContext *gin.Context, createNote
 	err := noteService.validationService.Struct(createNoteDto)
 	exception.ParseValidationError(err, noteService.engTranslator)
 	userJwtClaim := ginContext.MustGet("claims").(*userDto.JwtClaimDto)
+	fmt.Println(userJwtClaim)
 	err = noteService.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
 		var userModel model.User
 		var noteModel model.Note
 		var isCategoryExists bool
 		err = gormTransaction.Where("email = ?", userJwtClaim.Email).First(&userModel).Error
 		helper.CheckErrorOperation(err, exception.ParseGormError(err))
-		err = gormTransaction.Model(&model.Category{}).Select("COUNT(*) > 0").Where("id = ?", createNoteDto.CategoryId).Find(&isCategoryExists).Error
+		err = gormTransaction.Model(&model.Category{}).Select("COUNT(*) > 0").Where("id = ?", createNoteDto.CategoryId).Where("user_id = ?", userModel.ID).Find(&isCategoryExists).Error
 		helper.CheckErrorOperation(err, exception.ParseGormError(err))
 		mapper.MapNoteDtoIntoNoteModel(createNoteDto, &noteModel)
+		noteModel.UserID = userModel.ID
 		err = gormTransaction.Create(&noteModel).Error
 		helper.CheckErrorOperation(err, exception.ParseGormError(err))
 		return nil

@@ -45,6 +45,7 @@ func main() {
 
 	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
 	categoryController := InitializeCategoryController(databaseConnection, validatorInstance, engTranslator)
+	noteController := InitializeNoteController(databaseConnection, validatorInstance, engTranslator)
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 
@@ -52,7 +53,7 @@ func main() {
 	publicRouterGroup := apiRouterGroup.Group("/public")
 	routes.PublicRoute(publicRouterGroup, userController)
 	apiRouterGroup.Use(middleware.AuthMiddleware(viperConfig))
-	routes.UserRoute(apiRouterGroup, userController, categoryController)
+	routes.UserRoute(apiRouterGroup, userController, categoryController, noteController)
 	// Route
 	ginError := ginEngine.Run()
 	if ginError != nil {
