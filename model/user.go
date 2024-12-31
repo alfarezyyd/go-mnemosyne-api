@@ -20,5 +20,5 @@ type User struct {
 	UpdatedAt            time.Time              `gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`
 	OneTimePasswordToken []OneTimePasswordToken `gorm:"foreignKey:user_id;references:id"`
 	Categories           []Category             `gorm:"foreignKey:user_id;references:id"`
-	Note                 []Note                 `gorm:"foreignKey:category_id;references:id"`
+	Note                 []Note                 `gorm:"foreignKey:user_id;references:id"`
 }

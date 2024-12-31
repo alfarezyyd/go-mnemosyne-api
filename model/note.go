@@ -14,6 +14,6 @@ type Note struct {
 	IsArchived bool      `gorm:"column:is_archived"`
 	CreatedAt  time.Time `gorm:"column:created_at"`
 	UpdatedAt  time.Time `gorm:"column:updated_at"`
-	User       User      `gorm:"foreignKey:user_id;references:id"`
-	Category   Category  `gorm:"foreignKey:category_id;references:id"`
+	User       *User     `gorm:"foreignKey:user_id;references:id"`
+	Category   *Category `gorm:"foreignKey:category_id;references:id"`
 }
