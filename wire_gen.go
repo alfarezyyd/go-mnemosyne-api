@@ -29,9 +29,9 @@ func InitializeUserController(dbConnection *gorm.DB, validatorInstance *validato
 	return handler
 }
 
-func InitializeWhatsAppController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, viperConfig *viper.Viper) whatsapp.Controller {
+func InitializeWhatsAppController(dbConnection *gorm.DB, validatorInstance *validator.Validate, engTranslator ut.Translator, viperConfig *viper.Viper, vertexClient *config.VertexClient) whatsapp.Controller {
 	repositoryImpl := whatsapp.NewRepository()
-	serviceImpl := whatsapp.NewService(repositoryImpl, dbConnection, viperConfig, engTranslator)
+	serviceImpl := whatsapp.NewService(repositoryImpl, dbConnection, viperConfig, engTranslator, vertexClient)
 	handler := whatsapp.NewHandler(serviceImpl)
 	return handler
 }

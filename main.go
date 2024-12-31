@@ -53,7 +53,7 @@ func main() {
 	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
 	categoryController := InitializeCategoryController(databaseConnection, validatorInstance, engTranslator)
 	noteController := InitializeNoteController(databaseConnection, validatorInstance, engTranslator)
-	whatsAppController := InitializeWhatsAppController(databaseConnection, validatorInstance, engTranslator, viperConfig)
+	whatsAppController := InitializeWhatsAppController(databaseConnection, validatorInstance, engTranslator, viperConfig, vertexInstance)
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 	publicRouterGroup := ginEngine.Group("/public")

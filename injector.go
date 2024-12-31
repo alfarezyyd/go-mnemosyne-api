@@ -75,7 +75,8 @@ func InitializeUserController(dbConnection *gorm.DB,
 func InitializeWhatsAppController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
-	viperConfig *viper.Viper) whatsapp.Controller {
+	viperConfig *viper.Viper,
+	vertexClient *config.VertexClient) whatsapp.Controller {
 	wire.Build(whatsAppFeatureSet)
 	return nil
 }

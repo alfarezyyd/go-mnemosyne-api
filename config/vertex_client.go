@@ -30,7 +30,7 @@ func (vertexClient *VertexClient) InitializeVertexClient() error {
 		if err != nil {
 			return fmt.Errorf("error creating client: %w", err)
 		}
-		vertexClient.generativeModel = client.GenerativeModel("gemini-1.5-flash-001")
+		vertexClient.generativeModel = client.GenerativeModel("gemini-1.0-pro-vision")
 	}
 	return nil
 }
