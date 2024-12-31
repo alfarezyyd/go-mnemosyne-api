@@ -13,6 +13,7 @@ import (
 	"go-mnemosyne-api/note"
 	sharedNote "go-mnemosyne-api/shared_note"
 	"go-mnemosyne-api/user"
+	"go-mnemosyne-api/whatsapp"
 	"gorm.io/gorm"
 )
 
@@ -52,6 +53,15 @@ var sharedNoteFeatureSet = wire.NewSet(
 	wire.Bind(new(sharedNote.Repository), new(*sharedNote.RepositoryImpl)),
 )
 
+var whatsAppFeatureSet = wire.NewSet(
+	whatsapp.NewHandler,
+	wire.Bind(new(whatsapp.Controller), new(*whatsapp.Handler)),
+	whatsapp.NewService,
+	wire.Bind(new(whatsapp.Service), new(*whatsapp.ServiceImpl)),
+	whatsapp.NewRepository,
+	wire.Bind(new(whatsapp.Repository), new(*whatsapp.RepositoryImpl)),
+)
+
 func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
@@ -59,6 +69,14 @@ func InitializeUserController(dbConnection *gorm.DB,
 	identityProvider *config.IdentityProvider,
 	viperConfig *viper.Viper) user.Controller {
 	wire.Build(userFeatureSet)
+	return nil
+}
+
+func InitializeWhatsAppController(dbConnection *gorm.DB,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator,
+	viperConfig *viper.Viper) whatsapp.Controller {
+	wire.Build(whatsAppFeatureSet)
 	return nil
 }
 
