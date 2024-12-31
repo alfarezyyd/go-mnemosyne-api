@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/config"
+	"go-mnemosyne-api/note"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
 )
@@ -32,6 +33,15 @@ var categoryFeatureSet = wire.NewSet(
 	wire.Bind(new(category.Repository), new(*category.RepositoryImpl)),
 )
 
+var noteFeatureSet = wire.NewSet(
+	note.NewHandler,
+	wire.Bind(new(note.Controller), new(*note.Handler)),
+	note.NewService,
+	wire.Bind(new(note.Service), new(*note.ServiceImpl)),
+	note.NewRepository,
+	wire.Bind(new(note.Repository), new(*note.RepositoryImpl)),
+)
+
 func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
@@ -47,5 +57,13 @@ func InitializeCategoryController(
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator) category.Controller {
 	wire.Build(categoryFeatureSet)
+	return nil
+}
+
+func InitializeNoteController(
+	dbConnection *gorm.DB,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator) note.Controller {
+	wire.Build(noteFeatureSet)
 	return nil
 }
