@@ -30,7 +30,9 @@ func MapPayloadIntoWhatsAppMessageModel(payloadMessageDto *dto.PayloadMessageDto
 				whatsAppMessage.Name = contact.Profile.Name
 				whatsAppMessage.WhatsAppId = contact.WhatsAppId
 			}
-			allWhatsappMessages = append(allWhatsappMessages, whatsAppMessage)
+			if whatsAppMessage.WhatsAppId != "" {
+				allWhatsappMessages = append(allWhatsappMessages, whatsAppMessage)
+			}
 		}
 	}
 	return allWhatsappMessages
