@@ -1,6 +1,7 @@
 package category
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -33,6 +34,18 @@ func NewService(
 	}
 }
 
+func (serviceImpl *ServiceImpl) HandleGetAllByUser(ginContext *gin.Context) []model.Category {
+	var allCategoryById []model.Category
+	userJwtClaim := ginContext.MustGet("claims").(*userDto.JwtClaimDto)
+	err := serviceImpl.dbConnection.
+		Joins("JOIN users ON users.id = categories.user_id").
+		Select("categories.*").
+		Where("users.email = ?", userJwtClaim.Email).
+		Find(&allCategoryById).Error
+	helper.CheckErrorOperation(err, exception.ParseGormError(err))
+	fmt.Println(allCategoryById)
+	return allCategoryById
+}
 func (serviceImpl *ServiceImpl) HandleCreate(ginContext *gin.Context, categoryCreateDto *dto.CreateCategoryDto) {
 	err := serviceImpl.validationInstance.Struct(categoryCreateDto)
 	exception.ParseValidationError(err, serviceImpl.engTranslator)

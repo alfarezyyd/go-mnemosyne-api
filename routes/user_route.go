@@ -12,7 +12,7 @@ func UserRoute(routerGroup *gin.RouterGroup,
 	categoryController category.Controller,
 	noteController note.Controller) {
 	categoryGroup := routerGroup.Group("/categories")
-	categoryGroup.GET(":id", categoryController.GetAllByUser)
+	categoryGroup.GET("", categoryController.GetAllByUser)
 	categoryGroup.POST("", categoryController.Create)
 	categoryGroup.PUT("", categoryController.Update)
 	categoryGroup.DELETE(":id", categoryController.Delete)

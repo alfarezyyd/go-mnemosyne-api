@@ -19,7 +19,8 @@ func NewHandler(categoryService Service) *Handler {
 }
 
 func (categoryHandler *Handler) GetAllByUser(ginContext *gin.Context) {
-
+	allCategoryByUser := categoryHandler.categoryService.HandleGetAllByUser(ginContext)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Category fetch successfully", allCategoryByUser))
 }
 
 func (categoryHandler *Handler) Create(ginContext *gin.Context) {
