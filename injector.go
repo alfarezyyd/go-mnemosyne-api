@@ -11,6 +11,7 @@ import (
 	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/note"
+	sharedNote "go-mnemosyne-api/shared_note"
 	"go-mnemosyne-api/user"
 	"gorm.io/gorm"
 )
@@ -42,6 +43,15 @@ var noteFeatureSet = wire.NewSet(
 	wire.Bind(new(note.Repository), new(*note.RepositoryImpl)),
 )
 
+var sharedNoteFeatureSet = wire.NewSet(
+	sharedNote.NewHandler,
+	wire.Bind(new(sharedNote.Controller), new(*sharedNote.Handler)),
+	sharedNote.NewService,
+	wire.Bind(new(sharedNote.Service), new(*sharedNote.ServiceImpl)),
+	sharedNote.NewRepository,
+	wire.Bind(new(sharedNote.Repository), new(*sharedNote.RepositoryImpl)),
+)
+
 func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
@@ -65,5 +75,13 @@ func InitializeNoteController(
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator) note.Controller {
 	wire.Build(noteFeatureSet)
+	return nil
+}
+
+func InitializeSharedNoteController(
+	dbConnection *gorm.DB,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator) sharedNote.Controller {
+	wire.Build(sharedNoteFeatureSet)
 	return nil
 }
