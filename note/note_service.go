@@ -8,4 +8,5 @@ import (
 type Service interface {
 	HandleCreate(ginContext *gin.Context, createNoteDto *dto.CreateNoteDto)
 	HandleUpdate(ginContext *gin.Context, updateNoteDto *dto.UpdateNoteDto)
+	HandleDelete(ginContext *gin.Context, noteId *string)
 }

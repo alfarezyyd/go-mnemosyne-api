@@ -36,3 +36,9 @@ func (noteHandler *Handler) Update(ginContext *gin.Context) {
 	noteHandler.noteService.HandleUpdate(ginContext, &updateNoteDto)
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Success", nil))
 }
+
+func (noteHandler *Handler) Delete(ginContext *gin.Context) {
+	noteId := ginContext.Param("id")
+	noteHandler.noteService.HandleDelete(ginContext, &noteId)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Success", nil))
+}

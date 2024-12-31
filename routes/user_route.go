@@ -20,4 +20,5 @@ func UserRoute(routerGroup *gin.RouterGroup,
 	noteGroup := routerGroup.Group("/notes")
 	noteGroup.POST("", noteController.Create)
 	noteGroup.PUT(":id", noteController.Update)
+	noteGroup.DELETE(":id", noteController.Delete)
 }

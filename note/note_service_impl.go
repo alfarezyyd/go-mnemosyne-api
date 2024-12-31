@@ -77,3 +77,19 @@ func (noteService *ServiceImpl) HandleUpdate(ginContext *gin.Context, updateNote
 		return nil
 	})
 }
+
+func (noteService *ServiceImpl) HandleDelete(ginContext *gin.Context, noteId *string) {
+	err := noteService.validationService.Var(noteId, "required,gte=1")
+	exception.ParseValidationError(err, noteService.engTranslator)
+	userJwtClaim := ginContext.MustGet("claims").(*userDto.JwtClaimDto)
+	err = noteService.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		var userModel model.User
+		err = gormTransaction.Where("email = ?", userJwtClaim.Email).First(&userModel).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		err = gormTransaction.
+			Where("notes.id = ? AND user_id = ?", noteId, userModel.ID).
+			Delete(&model.Note{}).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		return nil
+	})
+}
