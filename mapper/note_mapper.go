@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func MapNoteDtoIntoNoteModel[T *dto.CreateNoteDto](noteDto T, noteModel *model.Note) {
+func MapNoteDtoIntoNoteModel[T *dto.CreateNoteDto | *dto.UpdateNoteDto](noteDto T, noteModel *model.Note) {
 	err := mapstructure.Decode(noteDto, noteModel)
 	fmt.Println(err)
 	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))

@@ -27,3 +27,12 @@ func (noteHandler *Handler) Create(ginContext *gin.Context) {
 	noteHandler.noteService.HandleCreate(ginContext, &createNoteDto)
 	ginContext.JSON(http.StatusCreated, helper.WriteSuccess("Success", nil))
 }
+
+func (noteHandler *Handler) Update(ginContext *gin.Context) {
+	var updateNoteDto dto.UpdateNoteDto
+	err := ginContext.ShouldBindBodyWithJSON(&updateNoteDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	fmt.Println(updateNoteDto)
+	noteHandler.noteService.HandleUpdate(ginContext, &updateNoteDto)
+	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Success", nil))
+}

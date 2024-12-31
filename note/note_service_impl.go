@@ -50,3 +50,30 @@ func (noteService *ServiceImpl) HandleCreate(ginContext *gin.Context, createNote
 		return nil
 	})
 }
+
+func (noteService *ServiceImpl) HandleUpdate(ginContext *gin.Context, updateNoteDto *dto.UpdateNoteDto) {
+	err := noteService.validationService.Struct(updateNoteDto)
+	exception.ParseValidationError(err, noteService.engTranslator)
+	userJwtClaim := ginContext.MustGet("claims").(*userDto.JwtClaimDto)
+	noteId := ginContext.Param("id")
+	err = noteService.validationService.Var(noteId, "required,gte=1")
+	exception.ParseValidationError(err, noteService.engTranslator)
+	err = noteService.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		var userModel model.User
+		var existingNote model.Note
+		var isCategoryExists bool
+		err = gormTransaction.Where("email = ?", userJwtClaim.Email).First(&userModel).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		err = gormTransaction.Where("id = ?", noteId).First(&existingNote).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		if existingNote.CategoryId != updateNoteDto.CategoryId {
+			err = gormTransaction.Model(&model.Category{}).Select("COUNT(*) > 0").Where("id = ?", updateNoteDto.CategoryId).Where("user_id = ?", userModel.ID).Find(&isCategoryExists).Error
+			helper.CheckErrorOperation(err, exception.ParseGormError(err))
+			existingNote.CategoryId = updateNoteDto.CategoryId
+		}
+		mapper.MapNoteDtoIntoNoteModel(updateNoteDto, &existingNote)
+		err = gormTransaction.Where("id = ?", existingNote.ID).Updates(&existingNote).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		return nil
+	})
+}
