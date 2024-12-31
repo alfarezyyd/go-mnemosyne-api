@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"net/http"
+	"time"
 )
 
 type ServiceImpl struct {
@@ -58,40 +59,40 @@ func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context
 		for _, message := range allWhatsAppMessage {
 			if message.SenderPhoneNumber != "" {
 				whatsAppService.SendMessage(message.SenderPhoneNumber, "Permintaan anda sedang diproses")
-				content, err := whatsAppService.vertexClient.GenerateContent(
-					fmt.Sprintf(
-						`
-I have text like this %s
-I want you to parse the text into JSON format with the following schema:
+				content, err :=
+					whatsAppService.vertexClient.GenerateContent(
+						fmt.Sprintf(
+							`
+Saya memiliki teks seperti ini %s
+Saya ingin Anda mengurai teks ke dalam format JSON dengan skema berikut:
 {
-"title": "string (required, 3-100 characters)",
-"content": "string (optional, max 255 characters)",
-"priority": "string (required, one of: Low, Medium, High, default: false)",
+"title": "string (diperlukan, 3-100 karakter)",
+"content": "string (opsional, maks 255 karakter)",
+"priority": "string (diperlukan, salah satu dari: Rendah, Sedang, Tinggi, default: false)",
 "due_date": "string (format: YYYY-MM-DD HH:mm)",
 "is_pinned": "boolean (default: false)",
 "is_archived": "boolean (default: false)"
 }
-Please pay close attention to the following rules
-1. If the text contains clear and concise information, use it as the title
-2. If the text is not long enough to be a title or there is not enough information for a title, treat the title as "No Title" or leave it blank if desired
-3. If there is a detailed description after the title, use it as the content
-4. If there is no explicit content, leave it blank or set the value default like "No content provided"
-5. If the text contains keywords that indicate urgency, set priority to "High".
-6. If there are no words that indicate urgency, set priority to "Medium".
-7. If there are words like "urgent" or "soon", set priority to "High".
-8. If there is a date or time mentioned in the text, extract the date and determine the due_date, but make sure to preface it with relevant keywords like deadline, collected, requested.
-9. If a time is mentioned (for example, '7 o'clock'), compare it to the current time (from the time the request was sent). If the time mentioned is past, add 1 day to the date when the request was sent to determine the due_date
-10. If the text contains words like "tomorrow", "next week", or relative dates, specify the appropriate date.
-11. If there is a word indicating that the item is important, set is_pinned to true
-12. If there is no indication of the importance of the note, set is_pinned to false
-13. If the text contains a word indicating that the note is done or does not need to be prioritized, set is_archived to true
-14. If there is no indication of archiving, set is_archived to false
-15. Extract the time first. Then, determine whether the date needs to be shifted based on whether the time has passed or not
-16. If the current time is 3:00 PM, and the text says '7 o'clock': the due_date should be tomorrow (tomorrow's date) in the format (YYYY-MM-DD HH:mm).
-17. If the current time is 5:00 AM, and the text says '7 o'clock': the due_date is the date the request was sent in the format (YYYY-MM-DD HH:mm).
-18. Check whether the specified time has passed. If yes, add 1 day.
-ONLY RETURN JSON FORMAT, DO NOT RETURN ANYTHING ELSE
-`, message.Text))
+Harap perhatikan aturan berikut
+1. Jika teks berisi informasi yang jelas dan ringkas, gunakan sebagai judul
+2. Jika teks tidak cukup panjang untuk menjadi judul atau tidak ada cukup informasi untuk judul, perlakukan judul sebagai "Tanpa Judul" atau kosongkan jika diinginkan
+3. Jika ada deskripsi terperinci setelah judul, gunakan sebagai konten
+4. Jika tidak ada konten yang eksplisit, biarkan kosong atau tetapkan nilai default seperti "Tidak ada konten yang disediakan"
+5. Jika teks berisi kata kunci yang menunjukkan urgensi, tetapkan prioritas ke "Tinggi".
+6. Jika tidak ada kata yang menunjukkan urgensi, tetapkan prioritas ke "Sedang".
+7. Jika ada kata seperti "mendesak" atau "segera", tetapkan prioritas ke "Tinggi".
+8. Jika ada tanggal atau waktu yang disebutkan dalam teks, ekstrak tanggal tersebut dan tentukan due_date, tetapi pastikan untuk mengawalinya dengan kata kunci yang relevan seperti deadline, collected, asked.
+9. Jika disebutkan waktu (misalnya, '7 o'clock'), bandingkan dengan waktu saat ini. Jika waktu yang disebutkan sudah lewat, tambahkan 1 hari ke waktu saat ini
+11. Jika ada kata yang menunjukkan bahwa item tersebut penting, tetapkan is_pinned menjadi true
+12. Jika tidak ada indikasi pentingnya catatan tersebut, tetapkan is_pinned menjadi false
+13. Jika teks berisi kata yang menunjukkan bahwa catatan tersebut sudah selesai atau tidak perlu diprioritaskan, tetapkan is_archived menjadi true
+14. Jika tidak ada indikasi pengarsipan, tetapkan is_archived menjadi false
+15. Ekstrak waktu terlebih dahulu. Kemudian, tentukan apakah tanggal perlu digeser berdasarkan apakah waktu telah berlalu atau belum
+16. Periksa apakah waktu yang ditentukan telah lewat. Jika ya, tambahkan 1 hari.
+17. Waktu saat ini adalah %s GMT+7 dalam format 24 jam
+18. Jika tidak ditemukan informasi tanggal dan waktu, due_date dapat kosong
+HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
+`, message.Text, (time.Now()).Format("2006-01-02 15.04")))
 
 				rb, err := json.MarshalIndent(content, "", "  ")
 				fmt.Println(content.Candidates[0].Content.Parts[0])
