@@ -7,7 +7,7 @@
     <file url="file://$PROJECT_DIR$/migrations/20241229194225_create_table_categories.up.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/migrations/20241230013915_create_table_notes.up.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/migrations/20241231111803_create_table_shared_notes.up.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/migrations/20241231112216_create_settings.up.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/migrations/20241231172653_create_table_settings.up.sql" dialect="MySQL" />
     <file url="PROJECT" dialect="MySQL" />
   </component>
 </project>
