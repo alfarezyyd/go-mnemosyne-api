@@ -13,6 +13,9 @@ func MapPayloadIntoWhatsAppMessageModel(payloadMessageDto *dto.PayloadMessageDto
 		for _, changes := range entry.Changes {
 			var whatsAppMessage model.WhatsappMessage
 			for _, message := range changes.Value.Messages {
+				if message.ID == "" {
+					continue
+				}
 				whatsAppMessage.ID = message.ID
 				whatsAppMessage.Type = message.Type
 				unixTimestamp, _ := strconv.ParseInt(message.Timestamp, 10, 64)
@@ -21,6 +24,9 @@ func MapPayloadIntoWhatsAppMessageModel(payloadMessageDto *dto.PayloadMessageDto
 				whatsAppMessage.SenderPhoneNumber = message.From
 			}
 			for _, contact := range changes.Value.Contacts {
+				if contact.Profile.Name == "" {
+					continue
+				}
 				whatsAppMessage.Name = contact.Profile.Name
 				whatsAppMessage.WhatsAppId = contact.WhatsAppId
 			}
