@@ -8,5 +8,5 @@ import (
 type Service interface {
 	HandleCreate(ginContext *gin.Context)
 	HandleVerifyTokenWebhook(ginContext *gin.Context)
-	HandleProcessWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto)
+	HandleMessageWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto)
 }

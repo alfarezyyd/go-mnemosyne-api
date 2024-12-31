@@ -4,6 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/spf13/viper"
+	"go-mnemosyne-api/exception"
+	"go-mnemosyne-api/helper"
+	"go-mnemosyne-api/mapper"
 	"go-mnemosyne-api/whatsapp/dto"
 	"gorm.io/gorm"
 	"net/http"
@@ -40,8 +43,14 @@ func (whatsAppService *ServiceImpl) HandleVerifyTokenWebhook(ginContext *gin.Con
 	ginContext.String(http.StatusForbidden, "Forbidden")
 }
 
-func (whatsAppService *ServiceImpl) HandleProcessWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto) {
-
+func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto) {
+	err := whatsAppService.gormConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		allWhatsAppMessage := mapper.MapPayloadIntoWhatsAppMessageModel(payloadMessageDto)
+		err := gormTransaction.Create(&allWhatsAppMessage).Error
+		helper.CheckErrorOperation(err, exception.ParseGormError(err))
+		return nil
+	})
+	helper.CheckErrorOperation(err, exception.ParseGormError(err))
 }
 
 func (whatsAppService *ServiceImpl) HandleCreate(ginContext *gin.Context) {}

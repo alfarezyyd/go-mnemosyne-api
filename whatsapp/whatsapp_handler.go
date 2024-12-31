@@ -26,7 +26,7 @@ func (whatsAppHandler *Handler) ProcessWebhook(ginContext *gin.Context) {
 	err := ginContext.ShouldBindBodyWithJSON(&payloadMessageDto)
 	fmt.Println(payloadMessageDto)
 	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
-	whatsAppHandler.whatsAppService.HandleProcessWebhook(ginContext, &payloadMessageDto)
+	whatsAppHandler.whatsAppService.HandleMessageWebhook(ginContext, &payloadMessageDto)
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Success", nil))
 }
 
