@@ -12,4 +12,7 @@ func UserRoute(routerGroup *gin.RouterGroup, userController user.Controller, cat
 	categoryGroup.POST("", categoryController.Create)
 	categoryGroup.PUT("", categoryController.Update)
 	categoryGroup.DELETE(":id", categoryController.Delete)
+
+	noteGroup := routerGroup.Group("/notes")
+	noteGroup.GET(":id")
 }
