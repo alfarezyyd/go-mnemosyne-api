@@ -31,6 +31,13 @@ func main() {
 	databaseInstance := config.NewDatabaseConnection(databaseCredentials)
 	databaseConnection := databaseInstance.GetDatabaseConnection()
 
+	// VertexAI Client
+	vertexInstance := config.NewVertexClient(viperConfig)
+	err := vertexInstance.InitializeVertexClient()
+	if err != nil {
+		panic(err)
+	}
+
 	// Validator
 	validatorInstance, engTranslator := config.InitializeValidator()
 
@@ -53,7 +60,7 @@ func main() {
 	publicRouterGroup := apiRouterGroup.Group("/public")
 	routes.PublicRoute(publicRouterGroup, userController)
 	apiRouterGroup.Use(middleware.AuthMiddleware(viperConfig))
-	routes.UserRoute(apiRouterGroup, userController, categoryController, noteController)
+	routes.UserRoute(apiRouterGroup, categoryController, noteController)
 	// Route
 	ginError := ginEngine.Run()
 	if ginError != nil {
