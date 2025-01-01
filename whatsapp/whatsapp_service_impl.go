@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/exception"
@@ -30,6 +31,7 @@ type ServiceImpl struct {
 	engTranslator      ut.Translator
 	vertexClient       *config.VertexClient
 	noteService        note.Service
+	validationInstance *validator.Validate
 }
 
 type Content struct {
@@ -72,7 +74,9 @@ func (whatsAppService *ServiceImpl) HandleVerifyTokenWebhook(ginContext *gin.Con
 }
 
 func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto) {
-	err := whatsAppService.gormConnection.Transaction(func(gormTransaction *gorm.DB) error {
+	err := whatsAppService.validationInstance.Struct(&payloadMessageDto)
+	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	err = whatsAppService.gormConnection.Transaction(func(gormTransaction *gorm.DB) error {
 		allWhatsAppMessage := mapper.MapPayloadIntoWhatsAppMessageModel(payloadMessageDto)
 
 		for _, message := range allWhatsAppMessage {
@@ -112,6 +116,7 @@ Harap perhatikan aturan berikut
 18. Jika tidak ditemukan informasi tanggal dan waktu, due_date dapat kosong
 HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 `, message.Text, (time.Now()).Format("2006-01-02 15.04")))
+				fmt.Println(err)
 				marshalResponse, _ := json.MarshalIndent(content, "", "  ")
 				var generateResponse ContentResponse
 				if err := json.Unmarshal(marshalResponse, &generateResponse); err != nil {
@@ -138,12 +143,11 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 					PhoneNumber: &userModel.PhoneNumber.String,
 				}
 				ginContext.Set("claims", &userJwtClaim)
-
 				whatsAppService.noteService.HandleCreate(ginContext, &allParsedNote[0])
 				helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 			}
-
 		}
+		whatsAppService.SendMessage(allWhatsAppMessage[0].SenderPhoneNumber, "Catatan berhasil ditambahkan")
 		return nil
 	})
 	helper.CheckErrorOperation(err, exception.ParseGormError(err))
