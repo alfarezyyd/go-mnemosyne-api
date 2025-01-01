@@ -31,8 +31,12 @@ func NewService(noteRepository Repository, dbConnection *gorm.DB, validationServ
 }
 
 func (noteService *ServiceImpl) HandleCreate(ginContext *gin.Context, createNoteDto *dto.CreateNoteDto) {
+	fmt.Println("TESTING11")
 	err := noteService.validationService.Struct(createNoteDto)
 	exception.ParseValidationError(err, noteService.engTranslator)
+	value, exists := ginContext.Get("claims")
+	claimDto := value.(*userDto.JwtClaimDto)
+	fmt.Println(claimDto.Email, claimDto.PhoneNumber, exists)
 	userJwtClaim := ginContext.MustGet("claims").(*userDto.JwtClaimDto)
 	fmt.Println(userJwtClaim)
 	err = noteService.dbConnection.Transaction(func(gormTransaction *gorm.DB) error {

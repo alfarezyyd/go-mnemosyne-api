@@ -31,6 +31,7 @@ func (vertexClient *VertexClient) InitializeVertexClient() error {
 			return fmt.Errorf("error creating client: %w", err)
 		}
 		vertexClient.generativeModel = client.GenerativeModel("gemini-1.5-pro-002")
+		vertexClient.generativeModel.ResponseMIMEType = "application/json"
 	}
 	return nil
 }

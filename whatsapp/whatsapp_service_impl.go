@@ -11,9 +11,14 @@ import (
 	"go-mnemosyne-api/exception"
 	"go-mnemosyne-api/helper"
 	"go-mnemosyne-api/mapper"
+	"go-mnemosyne-api/model"
+	"go-mnemosyne-api/note"
+	noteDto "go-mnemosyne-api/note/dto"
+	userDto "go-mnemosyne-api/user/dto"
 	"go-mnemosyne-api/whatsapp/dto"
 	"gorm.io/gorm"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -24,19 +29,33 @@ type ServiceImpl struct {
 	viperConfig        *viper.Viper
 	engTranslator      ut.Translator
 	vertexClient       *config.VertexClient
+	noteService        note.Service
+}
+
+type Content struct {
+	Parts []string `json:Parts`
+	Role  string   `json:Role`
+}
+type Candidates struct {
+	Content *Content `json:Content`
+}
+type ContentResponse struct {
+	Candidates *[]Candidates `json:Candidates`
 }
 
 func NewService(whatsAppRepository Repository,
 	gormConnection *gorm.DB,
 	viperConfig *viper.Viper,
 	engTranslator ut.Translator,
-	vertexClient *config.VertexClient) *ServiceImpl {
+	vertexClient *config.VertexClient,
+	noteService note.Service) *ServiceImpl {
 	return &ServiceImpl{
 		whatsAppRepository: whatsAppRepository,
 		gormConnection:     gormConnection,
 		viperConfig:        viperConfig,
 		engTranslator:      engTranslator,
 		vertexClient:       vertexClient,
+		noteService:        noteService,
 	}
 }
 
@@ -57,7 +76,7 @@ func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context
 		allWhatsAppMessage := mapper.MapPayloadIntoWhatsAppMessageModel(payloadMessageDto)
 
 		for _, message := range allWhatsAppMessage {
-			if message.SenderPhoneNumber != "" {
+			if message.SenderPhoneNumber != "" && message.Text != "" {
 				whatsAppService.SendMessage(message.SenderPhoneNumber, "Permintaan anda sedang diproses")
 				content, err :=
 					whatsAppService.vertexClient.GenerateContent(
@@ -68,7 +87,7 @@ Saya ingin Anda mengurai teks ke dalam format JSON dengan skema berikut:
 {
 "title": "string (diperlukan, 3-100 karakter)",
 "content": "string (opsional, maks 255 karakter)",
-"priority": "string (diperlukan, salah satu dari: Rendah, Sedang, Tinggi, default: false)",
+"priority": "string (diperlukan, salah satu dari: High, Low, Medium, default: Low)",
 "due_date": "string (format: YYYY-MM-DD HH:mm)",
 "is_pinned": "boolean (default: false)",
 "is_archived": "boolean (default: false)"
@@ -82,7 +101,7 @@ Harap perhatikan aturan berikut
 6. Jika tidak ada kata yang menunjukkan urgensi, tetapkan prioritas ke "Sedang".
 7. Jika ada kata seperti "mendesak" atau "segera", tetapkan prioritas ke "Tinggi".
 8. Jika ada tanggal atau waktu yang disebutkan dalam teks, ekstrak tanggal tersebut dan tentukan due_date, tetapi pastikan untuk mengawalinya dengan kata kunci yang relevan seperti deadline, collected, asked.
-9. Jika disebutkan waktu (misalnya, '7 o'clock'), bandingkan dengan waktu saat ini. Jika waktu yang disebutkan sudah lewat, tambahkan 1 hari ke waktu saat ini
+9. Jika disebutkan waktu (misalnya, jam 7'), bandingkan dengan waktu saat ini. Jika waktu yang disebutkan sudah lewat, tambahkan 1 hari ke waktu saat ini
 11. Jika ada kata yang menunjukkan bahwa item tersebut penting, tetapkan is_pinned menjadi true
 12. Jika tidak ada indikasi pentingnya catatan tersebut, tetapkan is_pinned menjadi false
 13. Jika teks berisi kata yang menunjukkan bahwa catatan tersebut sudah selesai atau tidak perlu diprioritaskan, tetapkan is_archived menjadi true
@@ -93,17 +112,37 @@ Harap perhatikan aturan berikut
 18. Jika tidak ditemukan informasi tanggal dan waktu, due_date dapat kosong
 HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 `, message.Text, (time.Now()).Format("2006-01-02 15.04")))
-
-				rb, err := json.MarshalIndent(content, "", "  ")
-				fmt.Println(content.Candidates[0].Content.Parts[0])
-				if err != nil {
-					fmt.Println("json.MarshalIndent: %w", err)
+				marshalResponse, _ := json.MarshalIndent(content, "", "  ")
+				var generateResponse ContentResponse
+				if err := json.Unmarshal(marshalResponse, &generateResponse); err != nil {
+					log.Fatal(err)
 				}
-				fmt.Println(string(rb))
+				var allParsedNote []noteDto.CreateNoteDto
+				for _, cad := range *generateResponse.Candidates {
+					if cad.Content != nil {
+						var parsedNote noteDto.CreateNoteDto
+						for _, part := range cad.Content.Parts {
+							err := json.Unmarshal([]byte(part), &parsedNote)
+							helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+						}
+						parsedNote.CategoryId = 1
+						allParsedNote = append(allParsedNote, parsedNote)
+					}
+				}
+				var userModel model.User
+				fmt.Println("CP11")
+				err = gormTransaction.Where("phone_number = ?", message.SenderPhoneNumber).First(&userModel).Error
+				helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+				userJwtClaim := userDto.JwtClaimDto{
+					Email:       &userModel.Email,
+					PhoneNumber: &userModel.PhoneNumber.String,
+				}
+				ginContext.Set("claims", &userJwtClaim)
+
+				whatsAppService.noteService.HandleCreate(ginContext, &allParsedNote[0])
+				helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 			}
 
-			err := gormTransaction.Create(&allWhatsAppMessage).Error
-			helper.CheckErrorOperation(err, exception.ParseGormError(err))
 		}
 		return nil
 	})
