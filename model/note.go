@@ -9,7 +9,7 @@ type Note struct {
 	Content    string    `gorm:"column:content"`
 	CategoryId uint64    `gorm:"column:category_id"`
 	Priority   string    `gorm:"column:priority;default:Low"`
-	DueDate    string    `gorm:"column:due_date"`
+	DueDate    string    `gorm:"column:due_date;default:null"`
 	IsPinned   bool      `gorm:"column:is_pinned"`
 	IsArchived bool      `gorm:"column:is_archived"`
 	CreatedAt  time.Time `gorm:"column:created_at"`

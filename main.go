@@ -38,6 +38,10 @@ func main() {
 		panic(err)
 	}
 
+	storage, err := config.InitializeGoogleCloudStorage()
+	if err != nil {
+		panic(err)
+	}
 	// Validator
 	validatorInstance, engTranslator := config.InitializeValidator()
 
@@ -53,7 +57,7 @@ func main() {
 	userController := InitializeUserController(databaseConnection, validatorInstance, engTranslator, mailerService, identityProvider, viperConfig)
 	categoryController := InitializeCategoryController(databaseConnection, validatorInstance, engTranslator)
 	noteController := InitializeNoteController(databaseConnection, validatorInstance, engTranslator)
-	whatsAppController := InitializeWhatsAppController(databaseConnection, validatorInstance, engTranslator, viperConfig, vertexInstance)
+	whatsAppController := InitializeWhatsAppController(databaseConnection, validatorInstance, engTranslator, viperConfig, vertexInstance, storage)
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 	publicRouterGroup := ginEngine.Group("/public")

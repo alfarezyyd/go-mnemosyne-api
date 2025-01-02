@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"bytes"
 	"cloud.google.com/go/vertexai/genai"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,7 @@ type ServiceImpl struct {
 	engTranslator      ut.Translator
 	vertexClient       *config.VertexClient
 	noteService        note.Service
+	googleCloudStorage *config.GoogleCloudStorage
 }
 
 type Content struct {
@@ -51,7 +53,8 @@ func NewService(whatsAppRepository Repository,
 	viperConfig *viper.Viper,
 	engTranslator ut.Translator,
 	vertexClient *config.VertexClient,
-	noteService note.Service) *ServiceImpl {
+	noteService note.Service,
+	storage *config.GoogleCloudStorage) *ServiceImpl {
 	return &ServiceImpl{
 		whatsAppRepository: whatsAppRepository,
 		gormConnection:     gormConnection,
@@ -59,6 +62,7 @@ func NewService(whatsAppRepository Repository,
 		engTranslator:      engTranslator,
 		vertexClient:       vertexClient,
 		noteService:        noteService,
+		googleCloudStorage: storage,
 	}
 }
 
@@ -132,16 +136,13 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 						fmt.Println("Error getting media URL:", err)
 					}
 
-					err = whatsAppService.downloadMedia(*(message.MediaId), mediaURL, strings.TrimPrefix(*(message.MimeType), "image/"))
+					publicUrl := whatsAppService.downloadMedia(*(message.MediaId), mediaURL, strings.TrimPrefix(*(message.MimeType), "image/"))
 					if err != nil {
 						fmt.Println("Error downloading media:", err)
 					}
-					projectRoot, _ := os.Getwd() // Mendapatkan root path proyek
-					templateFile := fmt.Sprintf("%s/public/static/image_temp", projectRoot)
-					imagePath := fmt.Sprintf("%s/%s.%s", templateFile, *(message.MediaId), *(message.MimeType))
 					content, err =
 						whatsAppService.vertexClient.GenerateContentWithImage(
-							imagePath,
+							publicUrl,
 							fmt.Sprintf(
 								`
 %s
@@ -288,37 +289,53 @@ func (whatsAppService *ServiceImpl) retrieveMediaLocation(mediaId string) (strin
 	return result.URL, nil
 }
 
-func (whatsAppService *ServiceImpl) downloadMedia(mediaId string, mediaUrl string, mimeType string) error {
+func (whatsAppService *ServiceImpl) downloadMedia(mediaId string, mediaUrl string, mimeType string) string {
 	projectRoot, _ := os.Getwd() // Mendapatkan root path proyek
 	templateFile := fmt.Sprintf("%s/public/static/image_temp", projectRoot)
 
 	req, err := http.NewRequest("GET", mediaUrl, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		fmt.Println("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", whatsAppService.viperConfig.GetString("META_GRAPH_API_TOKEN")))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		fmt.Println("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error response: %s", resp.Status)
+		fmt.Println("error response: %s", resp.Status)
 	}
 
+	backgroundCtx := context.Background()
 	file, err := os.Create(fmt.Sprintf("%s/%s.%s", templateFile, mediaId, mimeType))
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
 	defer file.Close()
-
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to save file: %w", err)
+		fmt.Printf("failed to save file: %w", err)
 	}
 
-	return nil
+	bucketObject := whatsAppService.googleCloudStorage.StorageClient.Bucket("mnemosyne-bucket")
+	helper.LogError(err)
+	fileName := fmt.Sprintf("%s.%s", mediaId, mimeType)
+	imageObject := bucketObject.Object(fileName)
+	fmt.Println(imageObject)
+	writer := imageObject.NewWriter(backgroundCtx)
+	imageFile, err := os.Open(fmt.Sprintf("%s/%s.%s", templateFile, mediaId, mimeType))
+	defer imageFile.Close()
+	helper.LogError(err)
+	_, err = io.Copy(writer, imageFile)
+	if err != nil {
+		fmt.Printf("failed to copy data to GCS writer: %v", err)
+	}
+	err = writer.Close() // Pastikan writer ditutup untuk menyelesaikan upload
+	if err != nil {
+		fmt.Printf("failed to close GCS writer: %v", err)
+	}
+	helper.LogError(err)
+	fmt.Println("Success download media location")
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", whatsAppService.viperConfig.GetString("BUCKET_NAME"), fileName)
 }

@@ -48,6 +48,6 @@ func GenerateOneTimePasswordToken() string {
 
 func LogError(err error) {
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error occurred", err)
 	}
 }
