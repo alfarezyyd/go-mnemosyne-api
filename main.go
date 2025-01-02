@@ -44,7 +44,11 @@ func main() {
 	}
 	// Validator
 	validatorInstance, engTranslator := config.InitializeValidator()
-
+	discordClient := config.NewDiscordClient(viperConfig)
+	discordSession, err := discordClient.InitializeDiscordConnection()
+	if err != nil {
+		panic(err)
+	}
 	mailerService := config.NewMailerService(viperConfig)
 	// Gin Initialization
 	ginEngine := gin.Default()
@@ -58,11 +62,12 @@ func main() {
 	categoryController := InitializeCategoryController(databaseConnection, validatorInstance, engTranslator)
 	noteController := InitializeNoteController(databaseConnection, validatorInstance, engTranslator)
 	whatsAppController := InitializeWhatsAppController(databaseConnection, validatorInstance, engTranslator, viperConfig, vertexInstance, storage)
+
 	authRouterGroup := ginEngine.Group("/authentication")
 	routes.AuthenticationRoute(authRouterGroup, userController)
 	publicRouterGroup := ginEngine.Group("/public")
 	routes.PublicRoute(publicRouterGroup, whatsAppController)
-
+	routes.DiscordRoutes(discordSession)
 	apiRouterGroup := ginEngine.Group("/api")
 	apiRouterGroup.Use(middleware.AuthMiddleware(viperConfig))
 	routes.UserRoute(apiRouterGroup, categoryController, noteController)
