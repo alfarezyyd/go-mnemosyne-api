@@ -9,5 +9,8 @@ type WhatsappMessage struct {
 	SenderPhoneNumber string    `gorm:"column:sender_phone_number"`
 	Timestamp         time.Time `gorm:"column:timestamp"`
 	Type              string    `gorm:"column:type"`
-	Text              string    `gorm:"column:text"`
+	Text              *string   `gorm:"column:text"`
+	MimeType          *string   `gorm:"column:mime_type"`
+	SHA256            *string   `gorm:"column:sha256"`
+	MediaId           *string   `gorm:"column:media_id"`
 }

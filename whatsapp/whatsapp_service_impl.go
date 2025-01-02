@@ -2,11 +2,11 @@ package whatsapp
 
 import (
 	"bytes"
+	"cloud.google.com/go/vertexai/genai"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/config"
 	"go-mnemosyne-api/exception"
@@ -21,6 +21,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -31,18 +33,17 @@ type ServiceImpl struct {
 	engTranslator      ut.Translator
 	vertexClient       *config.VertexClient
 	noteService        note.Service
-	validationInstance *validator.Validate
 }
 
 type Content struct {
-	Parts []string `json:Parts`
-	Role  string   `json:Role`
+	Parts []string `json:"Parts"`
+	Role  string   `json:"Role"`
 }
 type Candidates struct {
-	Content *Content `json:Content`
+	Content *Content `json:"Content"`
 }
 type ContentResponse struct {
-	Candidates *[]Candidates `json:Candidates`
+	Candidates *[]Candidates `json:"Candidates"`
 }
 
 func NewService(whatsAppRepository Repository,
@@ -74,19 +75,26 @@ func (whatsAppService *ServiceImpl) HandleVerifyTokenWebhook(ginContext *gin.Con
 }
 
 func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto) {
-	err := whatsAppService.validationInstance.Struct(&payloadMessageDto)
-	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
-	err = whatsAppService.gormConnection.Transaction(func(gormTransaction *gorm.DB) error {
-		allWhatsAppMessage := mapper.MapPayloadIntoWhatsAppMessageModel(payloadMessageDto)
+	if len(payloadMessageDto.Entry[0].Changes[0].Value.Messages) == 0 {
+		return
+	}
 
+	err := whatsAppService.gormConnection.Transaction(func(gormTransaction *gorm.DB) error {
+		allWhatsAppMessage := mapper.MapPayloadIntoWhatsAppMessageModel(payloadMessageDto)
 		for _, message := range allWhatsAppMessage {
-			if message.SenderPhoneNumber != "" && message.Text != "" {
+			if message.SenderPhoneNumber != "" {
 				whatsAppService.SendMessage(message.SenderPhoneNumber, "Permintaan anda sedang diproses")
-				content, err :=
-					whatsAppService.vertexClient.GenerateContent(
-						fmt.Sprintf(
-							`
-Saya memiliki teks seperti ini %s
+				var openingPrompt string
+				var content *genai.GenerateContentResponse
+				var err error
+				switch message.Type {
+				case "text":
+					openingPrompt = fmt.Sprintf("Saya memiliki teks seperti ini %s", *(message.Text))
+					content, err =
+						whatsAppService.vertexClient.GenerateContent(
+							fmt.Sprintf(
+								`
+%s
 Saya ingin Anda mengurai teks ke dalam format JSON dengan skema berikut:
 {
 "title": "string (diperlukan, 3-100 karakter)",
@@ -115,8 +123,60 @@ Harap perhatikan aturan berikut
 17. Waktu saat ini adalah %s GMT+7 dalam format 24 jam
 18. Jika tidak ditemukan informasi tanggal dan waktu, due_date dapat kosong
 HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
-`, message.Text, (time.Now()).Format("2006-01-02 15.04")))
-				fmt.Println(err)
+`, openingPrompt, (time.Now()).Format("2006-01-02 15.04")))
+					break
+				case "image":
+					openingPrompt = fmt.Sprintf("Lakukan OCR pada gambar yang dilampirkan dan")
+					mediaURL, err := whatsAppService.retrieveMediaLocation(*(message.MediaId))
+					if err != nil {
+						fmt.Println("Error getting media URL:", err)
+					}
+
+					err = whatsAppService.downloadMedia(*(message.MediaId), mediaURL, strings.TrimPrefix(*(message.MimeType), "image/"))
+					if err != nil {
+						fmt.Println("Error downloading media:", err)
+					}
+					projectRoot, _ := os.Getwd() // Mendapatkan root path proyek
+					templateFile := fmt.Sprintf("%s/public/static/image_temp", projectRoot)
+					imagePath := fmt.Sprintf("%s/%s.%s", templateFile, *(message.MediaId), *(message.MimeType))
+					content, err =
+						whatsAppService.vertexClient.GenerateContentWithImage(
+							imagePath,
+							fmt.Sprintf(
+								`
+%s
+Saya ingin Anda mengurai teks ke dalam format JSON dengan skema berikut:
+{
+"title": "string (diperlukan, 3-100 karakter)",
+"content": "string (opsional, maks 255 karakter)",
+"priority": "string (diperlukan, salah satu dari: High, Low, Medium, default: Low)",
+"due_date": "string (format: YYYY-MM-DD HH:mm)",
+"is_pinned": "boolean (default: false)",
+"is_archived": "boolean (default: false)"
+}
+Harap perhatikan aturan berikut
+1. Jika teks berisi informasi yang jelas dan ringkas, gunakan sebagai judul
+2. Jika teks tidak cukup panjang untuk menjadi judul atau tidak ada cukup informasi untuk judul, perlakukan judul sebagai "Tanpa Judul" atau kosongkan jika diinginkan
+3. Jika ada deskripsi terperinci setelah judul, gunakan sebagai konten
+4. Jika tidak ada konten yang eksplisit, biarkan kosong atau tetapkan nilai default seperti "Tidak ada konten yang disediakan"
+5. Jika teks berisi kata kunci yang menunjukkan urgensi, tetapkan prioritas ke "Tinggi".
+6. Jika tidak ada kata yang menunjukkan urgensi, tetapkan prioritas ke "Sedang".
+7. Jika ada kata seperti "mendesak" atau "segera", tetapkan prioritas ke "Tinggi".
+8. Jika ada tanggal atau waktu yang disebutkan dalam teks, ekstrak tanggal tersebut dan tentukan due_date, tetapi pastikan untuk mengawalinya dengan kata kunci yang relevan seperti deadline, collected, asked.
+9. Jika disebutkan waktu (misalnya, jam 7'), bandingkan dengan waktu saat ini. Jika waktu yang disebutkan sudah lewat, tambahkan 1 hari ke waktu saat ini
+11. Jika ada kata yang menunjukkan bahwa item tersebut penting, tetapkan is_pinned menjadi true
+12. Jika tidak ada indikasi pentingnya catatan tersebut, tetapkan is_pinned menjadi false
+13. Jika teks berisi kata yang menunjukkan bahwa catatan tersebut sudah selesai atau tidak perlu diprioritaskan, tetapkan is_archived menjadi true
+14. Jika tidak ada indikasi pengarsipan, tetapkan is_archived menjadi false
+15. Ekstrak waktu terlebih dahulu. Kemudian, tentukan apakah tanggal perlu digeser berdasarkan apakah waktu telah berlalu atau belum
+16. Periksa apakah waktu yang ditentukan telah lewat. Jika ya, tambahkan 1 hari.
+17. Waktu saat ini adalah %s GMT+7 dalam format 24 jam
+18. Jika tidak ditemukan informasi tanggal dan waktu, due_date dapat kosong
+HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
+`, openingPrompt, (time.Now()).Format("2006-01-02 15.04")))
+					break
+				}
+
 				marshalResponse, _ := json.MarshalIndent(content, "", "  ")
 				var generateResponse ContentResponse
 				if err := json.Unmarshal(marshalResponse, &generateResponse); err != nil {
@@ -134,8 +194,9 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 						allParsedNote = append(allParsedNote, parsedNote)
 					}
 				}
+				fmt.Println(generateResponse)
+				fmt.Println(allParsedNote[0])
 				var userModel model.User
-				fmt.Println("CP11")
 				err = gormTransaction.Where("phone_number = ?", message.SenderPhoneNumber).First(&userModel).Error
 				helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
 				userJwtClaim := userDto.JwtClaimDto{
@@ -144,13 +205,12 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 				}
 				ginContext.Set("claims", &userJwtClaim)
 				whatsAppService.noteService.HandleCreate(ginContext, &allParsedNote[0])
-				helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+				whatsAppService.SendMessage(message.SenderPhoneNumber, "Catatan berhasil ditambahkan")
 			}
 		}
-		whatsAppService.SendMessage(allWhatsAppMessage[0].SenderPhoneNumber, "Catatan berhasil ditambahkan")
 		return nil
 	})
-	helper.CheckErrorOperation(err, exception.ParseGormError(err))
+	helper.LogError(err)
 }
 
 func (whatsAppService *ServiceImpl) HandleCreate(ginContext *gin.Context) {}
@@ -192,7 +252,73 @@ func (whatsAppService *ServiceImpl) SendMessage(targetNumber string, payloadMess
 	// Cek status respons
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println("failed to send message: %s", string(body))
+		fmt.Printf("failed to send message: %s\n", string(body))
+	}
+}
+
+func (whatsAppService *ServiceImpl) retrieveMediaLocation(mediaId string) (string, error) {
+	fmt.Println("Retrieving media location")
+	url := fmt.Sprintf("https://graph.facebook.com/v21.0/%s", mediaId)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", whatsAppService.viperConfig.GetString("META_GRAPH_API_TOKEN")))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error response: %s", resp.Status)
 	}
 
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	fmt.Println("Success retrieve media location")
+
+	return result.URL, nil
+}
+
+func (whatsAppService *ServiceImpl) downloadMedia(mediaId string, mediaUrl string, mimeType string) error {
+	projectRoot, _ := os.Getwd() // Mendapatkan root path proyek
+	templateFile := fmt.Sprintf("%s/public/static/image_temp", projectRoot)
+
+	req, err := http.NewRequest("GET", mediaUrl, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", whatsAppService.viperConfig.GetString("META_GRAPH_API_TOKEN")))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("error response: %s", resp.Status)
+	}
+
+	file, err := os.Create(fmt.Sprintf("%s/%s.%s", templateFile, mediaId, mimeType))
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to save file: %w", err)
+	}
+
+	return nil
 }

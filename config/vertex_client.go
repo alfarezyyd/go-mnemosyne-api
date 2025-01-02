@@ -49,3 +49,24 @@ func (vertexClient *VertexClient) GenerateContent(promptPayload string) (*genai.
 	}
 	return nil, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest)
 }
+
+func (vertexClient *VertexClient) GenerateContentWithImage(imagePath string, promptPayload string) (*genai.GenerateContentResponse, error) {
+	ctx := context.Background()
+	if vertexClient.generativeModel == nil {
+		return nil, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest)
+	}
+
+	img := genai.FileData{
+		MIMEType: "image/jpeg",
+		FileURI:  imagePath,
+	}
+	textPayload := genai.Text(promptPayload)
+
+	// Generate content with multipart prompt
+	resp, err := vertexClient.generativeModel.GenerateContent(ctx, img, textPayload)
+	if err != nil {
+		helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	}
+
+	return resp, nil
+}

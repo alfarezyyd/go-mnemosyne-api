@@ -2,7 +2,6 @@ package whatsapp
 
 import (
 	"github.com/gin-gonic/gin"
-	"go-mnemosyne-api/exception"
 	"go-mnemosyne-api/helper"
 	"go-mnemosyne-api/whatsapp/dto"
 	"net/http"
@@ -23,7 +22,7 @@ func (whatsAppHandler *Handler) VerifyTokenWebhook(ginContext *gin.Context) {
 func (whatsAppHandler *Handler) ProcessWebhook(ginContext *gin.Context) {
 	var payloadMessageDto dto.PayloadMessageDto
 	err := ginContext.ShouldBindBodyWithJSON(&payloadMessageDto)
-	helper.CheckErrorOperation(err, exception.NewClientError(http.StatusBadRequest, exception.ErrBadRequest))
+	helper.LogError(err)
 	whatsAppHandler.whatsAppService.HandleMessageWebhook(ginContext, &payloadMessageDto)
 	ginContext.JSON(http.StatusOK, helper.WriteSuccess("Success", nil))
 }
