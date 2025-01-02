@@ -76,7 +76,8 @@ func InitializeWhatsAppController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
 	viperConfig *viper.Viper,
-	vertexClient *config.VertexClient) whatsapp.Controller {
+	vertexClient *config.VertexClient,
+	cloudStorageClient *config.GoogleCloudStorage) whatsapp.Controller {
 	wire.Build(whatsAppFeatureSet, noteFeatureSet)
 	return nil
 }
