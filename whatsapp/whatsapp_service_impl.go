@@ -79,6 +79,7 @@ func (whatsAppService *ServiceImpl) HandleVerifyTokenWebhook(ginContext *gin.Con
 }
 
 func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context, payloadMessageDto *dto.PayloadMessageDto) {
+	fmt.Println(payloadMessageDto)
 	if len(payloadMessageDto.Entry[0].Changes[0].Value.Messages) == 0 {
 		return
 	}
@@ -93,6 +94,17 @@ func (whatsAppService *ServiceImpl) HandleMessageWebhook(ginContext *gin.Context
 				var err error
 				switch message.Type {
 				case "text":
+					fmt.Println(*(message.Text))
+					if strings.HasPrefix(*(message.Text), "/") {
+						switch strings.ToLower(strings.Replace(*(message.Text), "/", "", 1)) {
+						case "getall":
+							var allNote []model.Note
+							gormTransaction.Joins("JOIN users ON users.id = notes.user_id").Where("users.phone_number = ?", message.SenderPhoneNumber).Find(&allNote)
+							whatsAppService.SendMessage(message.SenderPhoneNumber, mapper.MapAllNoteIntoString(allNote))
+							break
+						}
+						return nil
+					}
 					openingPrompt = fmt.Sprintf("Saya memiliki teks seperti ini %s", *(message.Text))
 					content, err =
 						whatsAppService.vertexClient.GenerateContent(

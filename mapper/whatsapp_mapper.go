@@ -1,7 +1,6 @@
 package mapper
 
 import (
-	"fmt"
 	"go-mnemosyne-api/model"
 	"go-mnemosyne-api/whatsapp/dto"
 	"strconv"
@@ -39,8 +38,8 @@ func MapPayloadIntoWhatsAppMessageModel(payloadMessageDto *dto.PayloadMessageDto
 				}
 				whatsAppMessage.Name = contact.Profile.Name
 				whatsAppMessage.WhatsAppId = contact.WhatsAppId
+
 			}
-			fmt.Println(*whatsAppMessage.MediaId)
 			if (whatsAppMessage.Type == "text" && *(whatsAppMessage.Text) != "") || (whatsAppMessage.Type == "image" && *(whatsAppMessage.MediaId) != "") {
 				allWhatsappMessages = append(allWhatsappMessages, whatsAppMessage)
 			}
