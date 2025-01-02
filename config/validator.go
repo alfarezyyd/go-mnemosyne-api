@@ -20,6 +20,9 @@ func InitializeValidator() (*validator.Validate, ut.Translator) {
 		return err == nil
 	})
 	validatorInstance.RegisterValidation("datetime", func(fieldLevel validator.FieldLevel) bool {
+		if fieldLevel.Field().String() == "" {
+			return true
+		}
 		format := "2006-01-02 15:04"
 		_, err := time.Parse(format, fieldLevel.Field().String())
 		return err == nil
