@@ -2,6 +2,7 @@ package exception
 
 import (
 	"errors"
+	"fmt"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
@@ -52,6 +53,7 @@ func ParseValidationError(validationError error, engTranslator ut.Translator) {
 		parsedMap := make(map[string]interface{})
 		for _, fieldError := range validationError.(validator.ValidationErrors) {
 			// can translate each error one at a time.
+			fmt.Println(fieldError)
 			parsedMap[fieldError.Field()] = fieldError.Translate(engTranslator)
 		}
 		panic(NewClientError(http.StatusBadRequest, ErrBadRequest, parsedMap))
