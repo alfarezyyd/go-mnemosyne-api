@@ -14,6 +14,7 @@ import (
 	"go-mnemosyne-api/helper"
 	"go-mnemosyne-api/mapper"
 	"go-mnemosyne-api/model"
+	"go-mnemosyne-api/model/vertex"
 	"go-mnemosyne-api/note"
 	noteDto "go-mnemosyne-api/note/dto"
 	userDto "go-mnemosyne-api/user/dto"
@@ -35,17 +36,6 @@ type ServiceImpl struct {
 	vertexClient       *config.VertexClient
 	noteService        note.Service
 	googleCloudStorage *config.GoogleCloudStorage
-}
-
-type Content struct {
-	Parts []string `json:"Parts"`
-	Role  string   `json:"Role"`
-}
-type Candidates struct {
-	Content *Content `json:"Content"`
-}
-type ContentResponse struct {
-	Candidates *[]Candidates `json:"Candidates"`
 }
 
 func NewService(whatsAppRepository Repository,
@@ -191,7 +181,7 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 				}
 
 				marshalResponse, _ := json.MarshalIndent(content, "", "  ")
-				var generateResponse ContentResponse
+				var generateResponse vertex.ContentResponse
 				if err := json.Unmarshal(marshalResponse, &generateResponse); err != nil {
 					log.Fatal(err)
 				}
