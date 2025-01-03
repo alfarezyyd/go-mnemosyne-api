@@ -9,3 +9,11 @@ type UpdateNoteDto struct {
 	IsPinned   bool   `json:"is_pinned"`
 	IsArchived bool   `json:"is_archived"`
 }
+
+func (d *UpdateNoteDto) GetDueDate() string {
+	return d.DueDate
+}
+
+func (d *UpdateNoteDto) SetDueDate(dueDate string) {
+	d.DueDate = dueDate
+}
