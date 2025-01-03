@@ -5,6 +5,6 @@ import (
 	"go-mnemosyne-api/discord"
 )
 
-func DiscordRoutes(discordSession *discordgo.Session) {
-	discordSession.AddHandler(discord.OnMessageCreate)
+func DiscordRoutes(discordSession *discordgo.Session, discordController discord.Controller) {
+	discordSession.AddHandler(discordController.OnMessageCreate)
 }
