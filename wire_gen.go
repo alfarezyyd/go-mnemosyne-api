@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/config"
+	"go-mnemosyne-api/discord"
 	"go-mnemosyne-api/note"
 	"go-mnemosyne-api/shared_note"
 	"go-mnemosyne-api/user"
@@ -57,6 +58,15 @@ func InitializeSharedNoteController(dbConnection *gorm.DB, validatorInstance *va
 	return handler
 }
 
+func InitializeDiscordController(dbConnection *gorm.DB, vertexClient *config.VertexClient, validatorInstance *validator.Validate, engTranslator ut.Translator, cloudStorageClient *config.GoogleCloudStorage, viperConfig *viper.Viper) discord.Controller {
+	repositoryImpl := discord.NewRepository()
+	serviceImpl := discord.NewService(repositoryImpl)
+	noteRepositoryImpl := note.NewRepository()
+	noteServiceImpl := note.NewService(noteRepositoryImpl, dbConnection, validatorInstance, engTranslator)
+	handler := discord.NewHandler(serviceImpl, vertexClient, noteServiceImpl, dbConnection, cloudStorageClient, viperConfig)
+	return handler
+}
+
 // injector.go:
 
 var userFeatureSet = wire.NewSet(user.NewHandler, wire.Bind(new(user.Controller), new(*user.Handler)), user.NewService, wire.Bind(new(user.Service), new(*user.ServiceImpl)), user.NewRepository, wire.Bind(new(user.Repository), new(*user.RepositoryImpl)))
@@ -68,3 +78,5 @@ var noteFeatureSet = wire.NewSet(note.NewHandler, wire.Bind(new(note.Controller)
 var sharedNoteFeatureSet = wire.NewSet(sharedNote.NewHandler, wire.Bind(new(sharedNote.Controller), new(*sharedNote.Handler)), sharedNote.NewService, wire.Bind(new(sharedNote.Service), new(*sharedNote.ServiceImpl)), sharedNote.NewRepository, wire.Bind(new(sharedNote.Repository), new(*sharedNote.RepositoryImpl)))
 
 var whatsAppFeatureSet = wire.NewSet(whatsapp.NewHandler, wire.Bind(new(whatsapp.Controller), new(*whatsapp.Handler)), whatsapp.NewService, wire.Bind(new(whatsapp.Service), new(*whatsapp.ServiceImpl)), whatsapp.NewRepository, wire.Bind(new(whatsapp.Repository), new(*whatsapp.RepositoryImpl)))
+
+var discordFeatureSet = wire.NewSet(discord.NewHandler, wire.Bind(new(discord.Controller), new(*discord.Handler)), discord.NewService, wire.Bind(new(discord.Service), new(*discord.ServiceImpl)), discord.NewRepository, wire.Bind(new(discord.Repository), new(*discord.RepositoryImpl)))

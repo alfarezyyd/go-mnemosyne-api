@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"go-mnemosyne-api/category"
 	"go-mnemosyne-api/config"
+	"go-mnemosyne-api/discord"
 	"go-mnemosyne-api/note"
 	sharedNote "go-mnemosyne-api/shared_note"
 	"go-mnemosyne-api/user"
@@ -62,6 +63,15 @@ var whatsAppFeatureSet = wire.NewSet(
 	wire.Bind(new(whatsapp.Repository), new(*whatsapp.RepositoryImpl)),
 )
 
+var discordFeatureSet = wire.NewSet(
+	discord.NewHandler,
+	wire.Bind(new(discord.Controller), new(*discord.Handler)),
+	discord.NewService,
+	wire.Bind(new(discord.Service), new(*discord.ServiceImpl)),
+	discord.NewRepository,
+	wire.Bind(new(discord.Repository), new(*discord.RepositoryImpl)),
+)
+
 func InitializeUserController(dbConnection *gorm.DB,
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator,
@@ -103,5 +113,16 @@ func InitializeSharedNoteController(
 	validatorInstance *validator.Validate,
 	engTranslator ut.Translator) sharedNote.Controller {
 	wire.Build(sharedNoteFeatureSet)
+	return nil
+}
+
+func InitializeDiscordController(dbConnection *gorm.DB,
+	vertexClient *config.VertexClient,
+	validatorInstance *validator.Validate,
+	engTranslator ut.Translator,
+	cloudStorageClient *config.GoogleCloudStorage,
+	viperConfig *viper.Viper,
+) discord.Controller {
+	wire.Build(discordFeatureSet, noteFeatureSet)
 	return nil
 }
