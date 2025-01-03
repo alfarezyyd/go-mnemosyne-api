@@ -3,6 +3,6 @@ package discord
 type RepositoryImpl struct {
 }
 
-func NewRepositoryImpl() *RepositoryImpl {
+func NewRepository() *RepositoryImpl {
 	return &RepositoryImpl{}
 }
