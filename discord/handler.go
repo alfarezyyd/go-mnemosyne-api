@@ -112,7 +112,6 @@ HANYA KEMBALIKAN FORMAT JSON, JANGAN KEMBALIKAN YANG LAIN
 						var allNote []model.Note
 						gormTransaction.Joins("JOIN users ON users.id = notes.user_id").Where("users.phone_number = ?", "6289637577001").Find(&allNote)
 						discSession.ChannelMessageSend(messagePayload.ChannelID, mapper.MapAllNoteIntoString(allNote))
-
 						break
 					}
 					return err
